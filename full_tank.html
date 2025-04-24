@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ガソリン満タン計算</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    label, p {
+      margin: 5px 0;
+    }
+    input, select {
+      margin: 5px;
+    }
+    .checkbox-group {
+      margin-bottom: 10px;
+    }
+    .checkbox-group input {
+      margin-left: 5px;
+    }
+    .result-section {
+      margin-top: 20px;
+    }
+    #payment-list {
+      margin-top: 20px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>ガソリン満タン計算</h1>
+
+  <h3>ガソリン代、高速代入力</h3>
+  <div id="people-list"></div>
+
+  <br><br>
+
+  <h3>搭乗者を選択:</h3>
+  <div id="passenger-list"></div>
+
+  <br><br>
+
+  <button onclick="calculate()">計算</button>
+
+  <div class="result-section">
+    <h3>結果:</h3>
+    <p id="result"></p>
+  </div>
+
+  <br><br>
+
+  <button onclick="showPaymentList()">請求額一覧</button>
+
+  <div id="payment-list">
+    <h3>請求額一覧:</h3>
+    <ul id="payment-list-items"></ul>
+  </div>
+
+  <script>
+    const people = [
+      { name: "しゅんご" },
+      { name: "ひょうが" },
+      { name: "あんな" },
+      { name: "ひろ" },
+      { name: "はっきゅう" },
+      { name: "こうへい" },
+      { name: "しょうた" },
+      { name: "さく" },
+      { name: "しゅうま" },
+      { name: "あい" },
+      { name: "ななみ" },
+      { name: "れい" },
+      { name: "たいせい" },
+      { name: "みこと" },
+      { name: "りょうた" },
+      { name: "よう" },
+      { name: "ひなこ" },
+      { name: "げんとく" },
+      { name: "あいか" },
+      { name: "るい" },
+      { name: "たける" },
+      { name: "あおい" }
+    ];
+
+    const peopleList = document.getElementById("people-list");
+    const passengerList = document.getElementById("passenger-list");
+
+    // ガソリン代と高速代入力欄の生成
+    people.forEach(person => {
+      const div = document.createElement("div");
+      div.className = "checkbox-group";
+      div.innerHTML = `
+        <label>
+          ${person.name}
+          <input type="number" class="gas-fee" placeholder="ガソリン代 (円)" style="width: 80px;">
+          <input type="number" class="toll-fee" placeholder="高速代 (円)" style="width: 80px;">
+        </label>
+      `;
+      peopleList.appendChild(div);
+    });
+
+    // 搭乗者チェックボックスの生成
+    people.forEach(person => {
+      const div = document.createElement("div");
+      div.className = "checkbox-group";
+      div.innerHTML = `
+        <label>
+          <input type="checkbox" class="passenger-checkbox"> ${person.name}
+        </label>
+      `;
+      passengerList.appendChild(div);
+    });
+
+    let resultData = {
+      driverCount: 0,
+      passengerCount: 0,
+      totalGasFee: 0,
+      totalTollFee: 0,
+      totalCost: 0,
+      driverCost: 0,
+      passengerCost: 0,
+      driverList: [],
+      passengerList: [],
+    };
+
+    function calculate() {
+      const gasFees = document.querySelectorAll('.gas-fee');
+      const tollFees = document.querySelectorAll('.toll-fee');
+      const passengerCheckboxes = document.querySelectorAll('.passenger-checkbox');
+
+      let totalGasFee = 0;
+      let totalTollFee = 0;
+      let driverCount = 0;
+      let passengerCount = 0;
+
+      resultData.driverList = [];
+      resultData.passengerList = [];
+
+      // ガソリン代と高速代を集計
+      gasFees.forEach((input, index) => {
+        const gasFee = parseFloat(input.value);
+        if (!isNaN(gasFee) && gasFee > 0) {
+          totalGasFee += gasFee;
+          driverCount++;
+          resultData.driverList.push({ name: people[index].name, gasFee, tollFee: parseFloat(tollFees[index].value || 0) });
+        }
+      });
+
+      tollFees.forEach((input) => {
+        const tollFee = parseFloat(input.value);
+        if (!isNaN(tollFee) && tollFee > 0) {
+          totalTollFee += tollFee;
+        }
+      });
+
+      // 搭乗者数をカウントし、エラー処理
+      for (let i = 0; i < passengerCheckboxes.length; i++) {
+        const checkbox = passengerCheckboxes[i];
+        if (checkbox.checked) {
+          // ガソリン代が入力されている人を搭乗者に選択した場合エラー
+          const gasFee = gasFees[i].value;
+          if (gasFee !== "") {
+            document.getElementById('result').textContent = `${people[i].name}は運転手としてガソリン代が入力されています。搭乗者に選択できません。`;
+            return;
+          }
+          passengerCount++;
+          resultData.passengerList.push({ name: people[i].name });
+        }
+      }
+
+      // 運転手がいない場合
+      if (driverCount === 0) {
+        document.getElementById('result').textContent = "運転手のガソリン代を入力してください。";
+        return;
+      }
+
+      resultData.totalGasFee = totalGasFee;
+      resultData.totalTollFee = totalTollFee;
+      resultData.totalCost = totalGasFee + totalTollFee;
+      const x = resultData.totalCost / (driverCount + 2 * passengerCount);
+      resultData.driverCost = Math.ceil(x);
+      resultData.passengerCost = passengerCount === 0 ? 0 : Math.ceil(2 * x);
+
+      document.getElementById('result').innerHTML = `
+        運転手の数: ${driverCount}人<br>
+        搭乗者の数: ${passengerCount}人<br>
+        ガソリン代の合計: ${totalGasFee} 円<br>
+        高速代の合計: ${totalTollFee} 円<br>
+        交通費の合計: ${resultData.totalCost} 円<br>
+        運転手の一人当たりの交通費: ${resultData.driverCost} 円<br>
+        搭乗者の一人当たりの交通費: ${resultData.passengerCost} 円
+      `;
+    }
+
+    function showPaymentList() {
+      const paymentListItems = document.getElementById("payment-list-items");
+
+      paymentListItems.innerHTML = "";
+
+      // 運転手と搭乗者の請求額一覧を1つにまとめて表示
+      const allPeople = [...resultData.driverList, ...resultData.passengerList];
+      
+      allPeople.forEach(person => {
+        const li = document.createElement("li");
+        let payment;
+
+        if (person.gasFee !== undefined) {
+          // 運転手の場合
+          payment = resultData.driverCost - (person.gasFee + person.tollFee);
+          li.textContent = `${person.name} (運転手): ${payment} 円`;
+        } else {
+          // 搭乗者の場合
+          payment = resultData.passengerCost;
+          li.textContent = `${person.name} (搭乗者): ${payment} 円`;
+        }
+
+        paymentListItems.appendChild(li);
+      });
+
+      document.getElementById("payment-list").style.display = "block";
+    }
+  </script>
+</body>
+</html>

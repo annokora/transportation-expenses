@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>燃費計算(運転手への支払い)</title>
+  <style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+  }
+  label, p {
+    margin: 5px 0;
+  }
+  input, select {
+    margin: 5px;
+  }
+  .checkbox-group {
+    margin-bottom: 10px;
+  }
+  .checkbox-group input {
+    margin-left: 5px;
+  }
+  .warning {
+    color: red;
+    font-weight: bold;
+  }
+  .counters-wrapper {
+    display: flex;
+    gap: 40px;
+    justify-content: flex-start; /* 左寄せに変更 */
+  }
+  .counter-column {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* 左寄せに変更 */
+  }
+  .counter-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+  }
+  .counter-item span {
+    display: inline-block;
+    width: 50px;
+    text-align: center;
+  }
+  .counter-item label {
+    width: 80px;
+  }
+  .counter-item button {
+    padding: 5px 10px;
+  }
+  </style>
+</head>
+<body>
+  <h1>燃費計算(運転手への支払い)</h1>
+
+  <label for="distance">走行距離 (km):</label>
+  <input type="number" id="distance" placeholder="例: 100">
+  <br><br>
+
+  <label>
+    <input type="checkbox" id="offtre-checkbox" onclick="setDistance(16)"> オフトレ, 16km
+  </label>
+  <label>
+    <input type="checkbox" id="arosa-checkbox" onclick="setDistance(26)"> アローザ, 26km
+  </label>
+  <br><br>
+
+  <h3>運転の回数カウント:</h3>
+  <div class="counters-wrapper">
+    <div class="counter-column">
+      <div><strong>往復</strong></div> <!-- ここをカウンターの真上に配置 -->
+      <div id="roundtrip-column"></div>
+    </div>
+    <div class="counter-column">
+      <div><strong>片道</strong></div> <!-- ここをカウンターの真上に配置 -->
+      <div id="oneway-column"></div>
+    </div>
+  </div>
+
+  <br>
+  <label for="gas-price">ガソリンの価格 (円/L):</label>
+  <input type="number" id="gas-price" placeholder="例: 150">
+  <br><br>
+
+  <button onclick="calculate()">計算</button>
+
+  <h3>運転手への支払額一覧:</h3>
+  <div id="payment-list"></div>
+  <p id="warning-message" class="warning"></p>
+
+  <script>
+    const people = [
+      { name: "しゅんご", fuel: "-", car: "-" },
+      { name: "ひょうが", fuel: 15.5, car: "フィールダー" },
+      { name: "あんな", fuel: 11.0, car: "エブリイ" },
+      { name: "ひろ", fuel: 12.5, car: "ヴィッツ" },
+      { name: "はっきゅう", fuel: 13.0, car: "フィールダー" },
+      { name: "こうへい", fuel: 18.0, car: "タフト" },
+      { name: "しょうた", fuel: 10.5, car: "レガシー" },
+      { name: "さく", fuel: "-", car: "-" },
+      { name: "しゅうま", fuel: "-", car: "-" },
+      { name: "あい", fuel: 13.2, car: "エアウェイブ" },
+      { name: "ななみ", fuel: 25.8, car: "アクア" },
+      { name: "れい", fuel: 16.5, car: "エヌボックス" },
+      { name: "たいせい", fuel: 10.5, car: "インプレッサ" },
+      { name: "みこと", fuel: "-", car: "-" },
+      { name: "りょうた", fuel: 11, car: "クロスビー" },
+      { name: "よう", fuel: 16, car: "ノート" },
+      { name: "ひなこ", fuel: 22, car: "ハスラー" },
+      { name: "げんとく", fuel: "-", car: "-" },
+      { name: "あいか", fuel: "-", car: "-" },
+      { name: "るい", fuel: "-", car: "-" },
+      { name: "たける", fuel: "-", car: "-" },
+      { name: "あおい", fuel: "-", car: "-" }
+    ];
+
+    const roundtripColumn = document.getElementById("roundtrip-column");
+    const onewayColumn = document.getElementById("oneway-column");
+    const paymentList = document.getElementById("payment-list");
+    const warningMessage = document.getElementById("warning-message");
+    const distanceInput = document.getElementById("distance");
+    const offtreCheckbox = document.getElementById("offtre-checkbox");
+    const arosaCheckbox = document.getElementById("arosa-checkbox");
+
+    // カウンター作成（往復・片道別々の列に配置）
+    people.forEach(person => {
+      const roundTripDiv = document.createElement("div");
+      roundTripDiv.className = "counter-item";
+      roundTripDiv.innerHTML = ` 
+        <label>${person.name}</label>
+        <button onclick="changeCount('${person.name}', -1)">-</button>
+        <span id="counter-${person.name}">0</span>
+        <button onclick="changeCount('${person.name}', 1)">+</button>
+      `;
+      roundtripColumn.appendChild(roundTripDiv);
+
+      const oneWayDiv = document.createElement("div");
+      oneWayDiv.className = "counter-item";
+      oneWayDiv.innerHTML = ` 
+        <label>${person.name}</label>
+        <button onclick="changeAltCount('${person.name}', -1)">-</button>
+        <span id="alt-counter-${person.name}">0</span>
+        <button onclick="changeAltCount('${person.name}', 1)">+</button>
+      `;
+      onewayColumn.appendChild(oneWayDiv);
+    });
+
+    function changeCount(name, change) {
+      const counterElement = document.getElementById(`counter-${name}`);
+      let count = parseInt(counterElement.innerText);
+      count += change;
+      if (count < 0) count = 0;
+      counterElement.innerText = count;
+    }
+
+    function changeAltCount(name, change) {
+      const counterElement = document.getElementById(`alt-counter-${name}`);
+      let count = parseInt(counterElement.innerText);
+      count += change;
+      if (count < 0) count = 0;
+      counterElement.innerText = count;
+    }
+
+    function setDistance(value) {
+      if (offtreCheckbox.checked && arosaCheckbox.checked) {
+        distanceInput.value = "";
+      } else if (offtreCheckbox.checked) {
+        distanceInput.value = 16;
+      } else if (arosaCheckbox.checked) {
+        distanceInput.value = 26;
+      } else {
+        distanceInput.value = "";
+      }
+    }
+
+    function calculate() {
+      const distance = parseFloat(distanceInput.value);
+      const gasPrice = parseFloat(document.getElementById('gas-price').value);
+      let hasNonDriver = false;
+
+      let resultHtml = "<ul>";
+      people.forEach(person => {
+        const roundTripCount = parseInt(document.getElementById(`counter-${person.name}`).innerText);
+        const oneWayCount = parseInt(document.getElementById(`alt-counter-${person.name}`).innerText);
+
+        if (roundTripCount > 0 || oneWayCount > 0) {
+          if (person.fuel === "-") {
+            hasNonDriver = true;
+          } else {
+            const fuel = parseFloat(person.fuel);
+            const fullCost = (distance / fuel) * gasPrice * roundTripCount;
+            const halfCost = ((distance / 2) / fuel) * gasPrice * oneWayCount;
+            const totalCost = Math.ceil(fullCost + halfCost);
+            resultHtml += `<li>${person.name}: ${totalCost}円 (往復: ${roundTripCount}回, 片道: ${oneWayCount}回)</li>`;
+          }
+        }
+      });
+      resultHtml += "</ul>";
+      paymentList.innerHTML = resultHtml;
+
+      if (hasNonDriver) {
+        warningMessage.innerText = "運転手じゃない人が選ばれています";
+      } else {
+        warningMessage.innerText = "";
+      }
+    }
+  </script>
+</body>
+</html>
