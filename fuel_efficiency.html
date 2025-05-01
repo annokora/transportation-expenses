@@ -178,7 +178,7 @@
       const totalCost = totalFuelCost + totalToll;
       const x = totalCost / (driverCount + 2 * passengerCount);
       const driverCost = Math.ceil(x);
-      const passengerCost = passengerCount === 0 ? 0 : Math.ceil((3/2) * x);
+      const passengerCost = passengerCount === 0 ? 0 : Math.ceil(2 * x);
 
       document.getElementById('result').innerHTML = `
         走行距離: ${distance} km<br>
