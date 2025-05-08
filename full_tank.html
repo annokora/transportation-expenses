@@ -83,7 +83,13 @@
       { name: "るい" },
       { name: "たける" },
       { name: "あおい" },
-      { name: "けいと" }
+      { name: "けいと" },
+      { name: "ゆう" },
+      { name: "ゆうき" },
+      { name: "たいぞう" },
+      { name: "こうしろう" },
+      { name: "みちお" },
+      { name: "あやか" }
     ];
 
     const peopleList = document.getElementById("people-list");
@@ -181,9 +187,9 @@
       resultData.totalGasFee = totalGasFee;
       resultData.totalTollFee = totalTollFee;
       resultData.totalCost = totalGasFee + totalTollFee;
-      const x = resultData.totalCost / (driverCount + 2 * passengerCount);
-      resultData.driverCost = Math.ceil(x);
-      resultData.passengerCost = passengerCount === 0 ? 0 : Math.ceil(2 * x);
+      const x = resultData.totalCost / (2 * riverCount + 3 * passengerCount);
+      resultData.driverCost = Math.ceil(2 * x);
+      resultData.passengerCost = passengerCount === 0 ? 0 : Math.ceil(3 * x);
 
       document.getElementById('result').innerHTML = `
         運転手の数: ${driverCount}人<br>
