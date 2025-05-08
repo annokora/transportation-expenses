@@ -72,7 +72,7 @@
       { name: "あい", fuel: 13.2 },
       { name: "ななみ", fuel: 25.8 },
       { name: "れい", fuel: 16.5 },
-      { name: "たいせい", fuel: 10 },
+      { name: "たいせい", fuel: 12 },
       { name: "みこと", fuel: 0 },
       { name: "りょうた", fuel: 11 },
       { name: "よう", fuel: 16 },
@@ -82,7 +82,13 @@
       { name: "るい", fuel: 0 },
       { name: "たける", fuel: 0 },
       { name: "あおい", fuel: 0 },
-      { name: "けいと", fuel: 0 }
+      { name: "けいと", fuel: 0 },
+      { name: "ゆう", fuel: 0 },
+      { name: "ゆうき", fuel: 0 },
+      { name: "たいぞう", fuel: 0 },
+      { name: "こうしろう", fuel: 0 },
+      { name: "みちお", fuel: 0 },
+      { name: "あやか", fuel: 0 }
     ];
 
     const peopleList = document.getElementById("people-list");
@@ -90,7 +96,6 @@
       const div = document.createElement("div");
       div.className = "checkbox-group";
       div.innerHTML = `
-
         <label>
           <input type="checkbox" class="driver-checkbox"> 
           <input type="checkbox" class="passenger-checkbox"> 
@@ -102,31 +107,27 @@
     });
 
     function toggleDistance(id, distance) {
-      // 他の距離の選択を解除する
       if (id === "offtore" && document.getElementById("arosa").checked) {
         document.getElementById("arosa").checked = false;
       }
       if (id === "arosa" && document.getElementById("offtore").checked) {
         document.getElementById("offtore").checked = false;
       }
-      
-      // 距離の設定
-      if (document.getElementById(id).checked) {
-        document.getElementById('distance').value = distance;
-      } else {
-        document.getElementById('distance').value = '';
-      }
+      document.getElementById('distance').value = document.getElementById(id).checked ? distance : '';
     }
 
     function validateDriverSelection() {
       const driverCheckboxes = document.querySelectorAll('.driver-checkbox');
-      let invalidSelection = false;
-      driverCheckboxes.forEach((checkbox, index) => {
-        if (checkbox.checked && people[index].fuel === 0) {
-          invalidSelection = true;
-        }
-      });
-      return invalidSelection;
+      return [...driverCheckboxes].some((checkbox, index) => checkbox.checked && people[index].fuel === 0);
+    }
+
+    function validateDriverPassengerConflict() {
+      const drivers = document.querySelectorAll('.driver-checkbox');
+      const passengers = document.querySelectorAll('.passenger-checkbox');
+      for (let i = 0; i < drivers.length; i++) {
+        if (drivers[i].checked && passengers[i].checked) return true;
+      }
+      return false;
     }
 
     function calculate() {
@@ -134,39 +135,32 @@
         document.getElementById('result').textContent = "運転手を正しく選べていません";
         return;
       }
+      if (validateDriverPassengerConflict()) {
+        document.getElementById('result').textContent = "運転手と搭乗者が正しく表示されません";
+        return;
+      }
 
       const distance = parseFloat(document.getElementById('distance').value);
       const gasPrice = parseFloat(document.getElementById('gas-price').value);
-      const driverCheckboxes = document.querySelectorAll('.driver-checkbox');
-      const passengerCheckboxes = document.querySelectorAll('.passenger-checkbox');
-      const tollFees = document.querySelectorAll('.toll-fee');
+      const drivers = document.querySelectorAll('.driver-checkbox');
+      const passengers = document.querySelectorAll('.passenger-checkbox');
+      const tolls = document.querySelectorAll('.toll-fee');
 
-      let totalGas = 0;
-      let driverCount = 0;
-      let passengerCount = 0;
-      let totalToll = 0;
+      let totalGas = 0, driverCount = 0, passengerCount = 0, totalToll = 0;
 
-      driverCheckboxes.forEach((checkbox, index) => {
+      drivers.forEach((checkbox, i) => {
         if (checkbox.checked) {
           driverCount++;
-          const fuel = people[index].fuel;
-          if (fuel > 0) {
-            totalGas += distance / fuel;
-          }
+          const fuel = people[i].fuel;
+          if (fuel > 0) totalGas += distance / fuel;
         }
       });
 
-      passengerCheckboxes.forEach((checkbox) => {
-        if (checkbox.checked) {
-          passengerCount++;
-        }
-      });
+      passengers.forEach(checkbox => { if (checkbox.checked) passengerCount++; });
 
-      tollFees.forEach((input) => {
+      tolls.forEach(input => {
         const toll = parseFloat(input.value);
-        if (!isNaN(toll)) {
-          totalToll += toll;
-        }
+        if (!isNaN(toll)) totalToll += toll;
       });
 
       if (driverCount === 0 || isNaN(gasPrice) || isNaN(distance)) {
@@ -176,9 +170,9 @@
 
       const totalFuelCost = totalGas * gasPrice;
       const totalCost = totalFuelCost + totalToll;
-      const x = totalCost / (driverCount + 2 * passengerCount);
-      const driverCost = Math.ceil(x);
-      const passengerCost = passengerCount === 0 ? 0 : Math.ceil(2 * x);
+      const x = totalCost / (2 * driverCount + 3 * passengerCount);
+      const driverCost = Math.ceil(2 * x);
+      const passengerCost = passengerCount === 0 ? 0 : Math.ceil(3 * x);
 
       document.getElementById('result').innerHTML = `
         走行距離: ${distance} km<br>
@@ -198,33 +192,35 @@
         document.getElementById('billing-list').innerHTML = "運転手を正しく選べていません";
         return;
       }
+      if (validateDriverPassengerConflict()) {
+        document.getElementById('billing-list').innerHTML = "運転手と搭乗者が正しく表示されません";
+        return;
+      }
 
-      const driverCheckboxes = document.querySelectorAll('.driver-checkbox');
-      const passengerCheckboxes = document.querySelectorAll('.passenger-checkbox');
-      const tollFees = document.querySelectorAll('.toll-fee');
+      const drivers = document.querySelectorAll('.driver-checkbox');
+      const passengers = document.querySelectorAll('.passenger-checkbox');
+      const tolls = document.querySelectorAll('.toll-fee');
       const distance = parseFloat(document.getElementById('distance').value);
       const gasPrice = parseFloat(document.getElementById('gas-price').value);
-      
-      let driverBilling = "";
-      let passengerBilling = "";
 
-      driverCheckboxes.forEach((checkbox, index) => {
+      let driverBilling = "", passengerBilling = "";
+
+      drivers.forEach((checkbox, i) => {
         if (checkbox.checked) {
-          const driver = people[index];
-          const toll = parseFloat(tollFees[index].value) || 0; // 高速料金が未記入の場合は0円
-          const fuel = driver.fuel;
-          // 修正された数式: (運転手の一人当たりの交通費) - ((走行距離 * ガソリンの価格 / 運転手の車の燃費) + 高速料金)
+          const person = people[i];
+          const toll = parseFloat(tolls[i].value) || 0;
+          const fuel = person.fuel;
           const fuelCost = (distance * gasPrice) / fuel;
-          const billingAmount = Math.ceil(parseFloat(document.getElementById('result').innerText.split("運転手の一人当たりの交通費: ")[1].split(" 円")[0]) - (fuelCost + toll));
-          driverBilling += `<p>${driver.name}: ${billingAmount} 円</p>`;
+          const driverCost = Math.ceil(parseFloat(document.getElementById('result').innerText.split("運転手の一人当たりの交通費: ")[1].split(" 円")[0]) - (fuelCost + toll));
+          driverBilling += `<p>${person.name}: ${driverCost} 円</p>`;
         }
       });
 
-      passengerCheckboxes.forEach((checkbox, index) => {
+      passengers.forEach((checkbox, i) => {
         if (checkbox.checked) {
-          const passenger = people[index];
-          const passengerCost = Math.ceil(parseFloat(document.getElementById('result').innerText.split("搭乗者の一人当たりの交通費: ")[1].split(" 円")[0]));
-          passengerBilling += `<p>${passenger.name}: ${passengerCost} 円</p>`;
+          const person = people[i];
+          const cost = Math.ceil(parseFloat(document.getElementById('result').innerText.split("搭乗者の一人当たりの交通費: ")[1].split(" 円")[0]));
+          passengerBilling += `<p>${person.name}: ${cost} 円</p>`;
         }
       });
 
