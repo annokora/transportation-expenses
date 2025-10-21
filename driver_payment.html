@@ -193,8 +193,8 @@
             hasNonDriver = true;
           } else {
             const fuel = parseFloat(person.fuel);
-            const fullCost = (distance / fuel) * gasPrice * roundTripCount;
-            const halfCost = ((distance / 2) / fuel) * gasPrice * oneWayCount;
+            const fullCost = (( 2 * distance) / fuel) * gasPrice * roundTripCount;
+            const halfCost = (distance / fuel) * gasPrice * oneWayCount;
             const totalCost = Math.ceil(fullCost + halfCost);
             resultHtml += `<li>${person.name}: ${totalCost}円 (往復: ${roundTripCount}回, 片道: ${oneWayCount}回)</li>`;
           }
@@ -212,4 +212,5 @@
   </script>
 </body>
 </html>
+
 
